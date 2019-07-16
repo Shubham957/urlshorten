@@ -9,6 +9,7 @@ import (
 	_ "github.com/jinzhu/gorm/dialects/mysql"
 	"io/ioutil"
 	"net/http"
+	"sync"
 )
 var ss string="abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
 var db *gorm.DB
@@ -118,16 +119,18 @@ type (
 
 
 )
+var wg sync.WaitGroup
 func ReadUrl(c *gin.Context) {
 
 	var urls []shortit
 	p, _ := ioutil.ReadFile(c.Query("path"))
 	json.Unmarshal(p, &urls)
 	fmt.Println(len(urls))
+	wg.Add(len(urls))
 	for i := 0; i < len(urls); i++ {
 		go putGo(urls[i])
 	}
-
+	wg.Wait()
 }
 
 
@@ -142,7 +145,7 @@ func putGo( urls shortit){
 	if count >= 1{
 
 		db.Where("Url = ?", urls.Url).First(&todo)
-		fmt.Print("In if")
+	//	fmt.Print("In if")
 
 	}else {
 		db.Save(&todo)
@@ -150,6 +153,7 @@ func putGo( urls shortit){
 		todo.ShortUrl = solve(urls.Url, todo.ID)
 		db.Save(&todo)
 	}
+	wg.Done()
 }
 
 
