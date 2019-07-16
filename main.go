@@ -1,11 +1,13 @@
 package main
 
 import (
+	"encoding/json"
 	"fmt"
 	"github.com/gin-gonic/contrib/static"
 	"github.com/gin-gonic/gin"
 	"github.com/jinzhu/gorm"
 	_ "github.com/jinzhu/gorm/dialects/mysql"
+	"io/ioutil"
 	"net/http"
 )
 var ss string="abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
@@ -77,6 +79,9 @@ func shortener(c *gin.Context) {
 //db.Save(&a)
 
 }
+
+
+
 func main() {
 
 	router := gin.Default()
@@ -85,8 +90,8 @@ func main() {
 	router.Use(static.Serve("/", static.LocalFile("./views", true)))
 //router.Post("/acton",createTodo)
 router.POST("/action",shortener)
-
-router.Run(":8088")
+	router.GET("/file", ReadUrl)
+router.Run(":8080")
 
 //	v1 := router.Group("/short")
 //	{
@@ -113,6 +118,47 @@ type (
 
 
 )
+func ReadUrl(c *gin.Context) {
+
+	var urls []shortit
+	p, _ := ioutil.ReadFile(c.Query("path"))
+	json.Unmarshal(p, &urls)
+	fmt.Println(len(urls))
+	for i := 0; i < len(urls); i++ {
+		go putGo(urls[i])
+	}
+
+}
+
+
+
+func putGo( urls shortit){
+	var count int
+	var todo shortit
+	todo.Url=urls.Url
+	db.Model(&shortit{}).Where("Url = ?", urls.Url).Count(&count)
+
+
+	if count >= 1{
+
+		db.Where("Url = ?", urls.Url).First(&todo)
+		fmt.Print("In if")
+
+	}else {
+		db.Save(&todo)
+
+		todo.ShortUrl = solve(urls.Url, todo.ID)
+		db.Save(&todo)
+	}
+}
+
+
+
+//
+//func Test(urls shortit){
+//	for int i=:0;i<len(urls);i++{
+//
+//}
 
 // createTodo add a new todo
 //func createTodo(c *gin.Context) {
